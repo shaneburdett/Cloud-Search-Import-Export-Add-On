@@ -15,6 +15,7 @@ function cldchimp_activation() {
 		deactivate_plugins( plugin_basename( __FILE__ ) );
 		die( __( 'The plugin has been disabled because it will not work without the Cloud Search Plugin. ') );
 	}
+}
 
 /**
  * Register the settings page
@@ -28,6 +29,11 @@ add_action( 'admin_menu', 'cldchimp_settings_menu' );
  * Render the settings page
  */
 function cldchimp_settings_page() {
+	// In Cloud Search gets de-activated after install
+	if ( ! is_plugin_active( 'cloud-search/cloud-search.php' ) ) {
+		deactivate_plugins( plugin_basename( __FILE__ ) );
+		die( __( 'The plugin has been disabled because it will not work without the Cloud Search Plugin. ') );
+	}
 
 	$options = ACS::get_instance()->get_settings(); ?>
 	<div class="wrap">
