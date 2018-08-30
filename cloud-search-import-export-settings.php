@@ -8,6 +8,14 @@
 // Exit if accessed directly
 if ( ! defined( 'ABSPATH' ) ) exit;
 
+// Verify Cloud Search Plugin is Active
+function cldchimp_activation() {
+	
+	if ( ! is_plugin_active( 'cloud-search/cloud-search.php' ) ) {
+		deactivate_plugins( plugin_basename( __FILE__ ) );
+		die( __( 'The plugin has been disabled because it will not work without the Cloud Search Plugin. ') );
+	}
+
 /**
  * Register the settings page
  */
