@@ -29,7 +29,7 @@ add_action( 'admin_menu', 'cldchimp_settings_menu' );
  * Render the settings page
  */
 function cldchimp_settings_page() {
-	// In Cloud Search gets de-activated after install
+	// In case Cloud Search gets de-activated after install
 	if ( ! is_plugin_active( 'cloud-search/cloud-search.php' ) ) {
 		deactivate_plugins( plugin_basename( __FILE__ ) );
 		die( __( 'The plugin has been disabled because it will not work without the Cloud Search Plugin. ') );
@@ -131,7 +131,7 @@ function cldchimp_process_settings_export() {
 
 	nocache_headers();
 	header( 'Content-Type: application/json; charset=utf-8' );
-	header( 'Content-Disposition: attachment; filename=cldchimp-settings-export-' . date( 'm-d-Y' ) . '.json' );
+	header( 'Content-Disposition: attachment; filename=cloud-search-settings-export-' . date( 'm-d-Y' ) . '.json' );
 	header( "Expires: 0" );
 
 	echo json_encode( $settings );
