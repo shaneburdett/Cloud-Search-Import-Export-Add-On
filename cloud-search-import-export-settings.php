@@ -16,6 +16,7 @@ function cldchimp_activation() {
 		die( __( 'The plugin has been disabled because it will not work without the Cloud Search Plugin. ') );
 	}
 }
+register_activation_hook( __FILE__, 'cldchimp_activation' );
 
 /**
  * Register the settings page
@@ -29,12 +30,10 @@ add_action( 'admin_menu', 'cldchimp_settings_menu' );
  * Render the settings page
  */
 function cldchimp_settings_page() {
-	// In case Cloud Search gets de-activated after install
-	if ( ! is_plugin_active( 'cloud-search/cloud-search.php' ) ) {
+    if ( ! is_plugin_active( 'cloud-search/cloud-search.php' ) ) {
 		deactivate_plugins( plugin_basename( __FILE__ ) );
 		die( __( 'The plugin has been disabled because it will not work without the Cloud Search Plugin. ') );
 	}
-
 	$options = ACS::get_instance()->get_settings(); ?>
 	<div class="wrap">
 		<h2>CURRENT CLOUD SEARCH PLUGIN SETTINGS:</h2>
@@ -166,72 +165,75 @@ function cldchimp_process_settings_import() {
 	}
 
 	// Retrieve the settings from the file and convert the json object to an array.
-	$settings = (array) json_decode( file_get_contents( $import_file ) );
+	$newsettings = (array) json_decode( file_get_contents( $import_file ) );
+	
+	// Save settings action
+	$settings = new stdClass();
 	
 	// Read post data
-	$settings->acs_aws_access_key_id = ( !empty( $_POST[ 'acs_aws_access_key_id' ] ) ) ? wp_kses_post( $_POST[ 'acs_aws_access_key_id' ] ) : '';
-	$settings->acs_aws_secret_access_key = ( !empty( $_POST[ 'acs_aws_secret_access_key' ] ) ) ? wp_kses_post( $_POST[ 'acs_aws_secret_access_key' ] ) : '';
-	$settings->acs_aws_region = ( !empty( $_POST[ 'acs_aws_region' ] ) ) ? wp_kses_post( $_POST[ 'acs_aws_region' ] ) : '';
-	$settings->acs_search_endpoint = ( !empty( $_POST[ 'acs_search_endpoint' ] ) ) ? wp_kses_post( $_POST[ 'acs_search_endpoint' ] ) : '';
-	$settings->acs_search_domain_name = ( !empty( $_POST[ 'acs_search_domain_name' ] ) ) ? wp_kses_post( $_POST[ 'acs_search_domain_name' ] ) : '';
-	$settings->acs_frontpage_content_box_type = ( !empty( $_POST[ 'acs_frontpage_content_box_type' ] ) ) ? wp_kses_post( $_POST[ 'acs_frontpage_content_box_type' ] ) : 'default';
-	$settings->acs_frontpage_content_box_value = ( !empty( $_POST[ 'acs_frontpage_content_box_value' ] ) ) ? wp_kses_post( $_POST[ 'acs_frontpage_content_box_value' ] ) : '';
-	$settings->acs_frontpage_use_plugin_search_page = ( !empty( $_POST[ 'acs_frontpage_use_plugin_search_page' ] ) ) ? 1 : 0;
-	$settings->acs_frontpage_use_jquery = ( !empty( $_POST[ 'acs_frontpage_use_jquery' ] ) ) ? 1 : 0;
-	$settings->acs_frontpage_show_filters = ( !empty( $_POST[ 'acs_frontpage_show_filters' ] ) ) ? 1 : 0;
-	$settings->acs_frontpage_custom_css = ( !empty( $_POST[ 'acs_frontpage_custom_css' ] ) ) ? wp_kses_post( $_POST[ 'acs_frontpage_custom_css' ] ) : '';
-	$settings->acs_results_show_fields_sticky = ( !empty( $_POST[ 'acs_results_show_fields_sticky' ] ) ) ? 1 : 0;
-	$settings->acs_results_show_fields_formats = ( !empty( $_POST[ 'acs_results_show_fields_formats' ] ) ) ? 1 : 0;
-	$settings->acs_results_show_fields_categories = ( !empty( $_POST[ 'acs_results_show_fields_categories' ] ) ) ? 1 : 0;
-	$settings->acs_results_show_fields_tags = ( !empty( $_POST[ 'acs_results_show_fields_tags' ] ) ) ? 1 : 0;
-	$settings->acs_results_show_fields_comments = ( !empty( $_POST[ 'acs_results_show_fields_comments' ] ) ) ? 1 : 0;
-	$settings->acs_results_show_fields_content = ( !empty( $_POST[ 'acs_results_show_fields_content' ] ) ) ? 1 : 0;
-    $settings->acs_results_show_fields_excerpt = ( !empty( $_POST[ 'acs_results_show_fields_excerpt' ] ) ) ? 1 : 0;
-	$settings->acs_results_show_fields_custom = ( !empty( $_POST[ 'acs_results_show_fields_custom' ] ) ) ? 1 : 0;
-	$settings->acs_results_custom_field = ( !empty( $_POST[ 'acs_results_custom_field' ] ) ) ? wp_kses_post( $_POST[ 'acs_results_custom_field' ] ) : '';
-	$settings->acs_results_show_fields_image = ( !empty( $_POST[ 'acs_results_show_fields_image' ] ) ) ? 1 : 0;
-	$settings->acs_results_format_image = ( !empty( $_POST[ 'acs_results_format_image' ] ) ) ? wp_kses_post( $_POST[ 'acs_results_format_image' ] ) : '';
-	$settings->acs_results_show_fields_date = ( !empty( $_POST[ 'acs_results_show_fields_date' ] ) ) ? 1 : 0;
-	$settings->acs_results_format_date = ( !empty( $_POST[ 'acs_results_format_date' ] ) ) ? wp_kses_post( $_POST[ 'acs_results_format_date' ] ) : '';
-	$settings->acs_results_show_fields_author = ( !empty( $_POST[ 'acs_results_show_fields_author' ] ) ) ? 1 : 0;
-	$settings->acs_results_format_author = ( !empty( $_POST[ 'acs_results_format_author' ] ) ) ? wp_kses_post( $_POST[ 'acs_results_format_author' ] ) : '';
-	$settings->acs_results_no_results_msg = ( !empty( $_POST[ 'acs_results_no_results_msg' ] ) ) ? stripslashes( wp_kses_post( $_POST[ 'acs_results_no_results_msg' ] ) ) : __( 'No results', ACS::PREFIX );
-	$settings->acs_results_no_results_box_value = ( !empty( $_POST[ 'acs_results_no_results_box_value' ] ) ) ? wp_kses_post( $_POST[ 'acs_results_no_results_box_value' ] ) : '';
-	$settings->acs_results_load_more_msg = ( !empty( $_POST[ 'acs_results_load_more_msg' ] ) ) ? stripslashes( wp_kses_post( $_POST[ 'acs_results_load_more_msg' ] ) ) : __( 'Load more', ACS::PREFIX );
-	$settings->acs_filter_sort_field = ( !empty( $_POST[ 'acs_filter_sort_field' ] ) ) ? wp_kses_post( $_POST[ 'acs_filter_sort_field' ] ) : ACS::SORT_FIELD_DEFAULT;
-	$settings->acs_filter_sort_order = ( !empty( $_POST[ 'acs_filter_sort_order' ] ) ) ? wp_kses_post( $_POST[ 'acs_filter_sort_order' ] ) : ACS::SORT_ORDER_DEFAULT;
-	$settings->acs_results_max_items = ( !empty( $_POST[ 'acs_results_max_items' ] ) ) ? intval( wp_kses_post( $_POST[ 'acs_results_max_items' ] ) ) : ACS::SEARCH_RETURN_FULL_ITEMS;
-	$settings->acs_results_field_weights = ( !empty( $_POST[ 'acs_results_field_weights' ] ) ) ? stripslashes( wp_kses_post( $_POST[ 'acs_results_field_weights' ] ) ) : '';
-    $settings->acs_filter_text_length = ( !empty( $_POST[ 'acs_filter_text_length' ] ) ) ? intval( wp_kses_post( $_POST[ 'acs_filter_text_length' ] ) ) : ACS::SEARCH_TEXT_LENGTH;
-    $settings->acs_filter_text_length_type = ( !empty( $_POST[ 'acs_filter_text_length_type' ] ) ) ? wp_kses_post( $_POST[ 'acs_filter_text_length_type' ] ) : ACS::SEARCH_TEXT_LENGTH_TYPE;
-    $settings->acs_schema_fields_prefix = ( !empty( $_POST[ 'acs_schema_fields_prefix' ] ) ) ? wp_kses_post( $_POST[ 'acs_schema_fields_prefix' ] ) : '';
-	$settings->acs_schema_fields_separator = ( !empty( $_POST[ 'acs_schema_fields_separator' ] ) ) ? wp_kses_post( $_POST[ 'acs_schema_fields_separator' ] ) : ACS::FIELD_SEPARATOR_DEFAULT;
-	$settings->acs_schema_fields_image_size = ( !empty( $_POST[ 'acs_schema_fields_image_size' ] ) ) ? wp_kses_post( $_POST[ 'acs_schema_fields_image_size' ] ) : '';
-	$settings->acs_schema_fields_custom_image_id = ( !empty( $_POST[ 'acs_schema_fields_custom_image_id' ] ) ) ? wp_kses_post( $_POST[ 'acs_schema_fields_custom_image_id' ] ) : '';
-    $settings->acs_schema_prevent_deletion =  ( !empty( $_POST[ 'acs_schema_prevent_deletion' ] ) ) ? 1 : 0;
-	$settings->acs_network_site_id = ( !empty( $_POST[ 'acs_network_site_id' ] ) ) ? wp_kses_post( $_POST[ 'acs_network_site_id' ] ) : '';
-	$settings->acs_network_blog_id = ( !empty( $_POST[ 'acs_network_blog_id' ] ) ) ? wp_kses_post( $_POST[ 'acs_network_blog_id' ] ) : '';
-	$settings->acs_highlight_type = ( !empty( $_POST[ 'acs_highlight_type' ] ) ) ? wp_kses_post( $_POST[ 'acs_highlight_type' ] ) : ACS::HIGHLIGHT_TYPE_DEFAULT;
-    $settings->acs_highlight_titles = ( !empty( $_POST[ 'acs_highlight_titles' ] ) ) ? 1 : 0;
-    $settings->acs_highlight_color_text = ( !empty( $_POST[ 'acs_highlight_color_text' ] ) ) ? wp_kses_post( $_POST[ 'acs_highlight_color_text' ] ) : '';
-    $settings->acs_highlight_color_background = ( !empty( $_POST[ 'acs_highlight_color_background' ] ) ) ? wp_kses_post( $_POST[ 'acs_highlight_color_background' ] ) : '';
-    $settings->acs_highlight_style = ( !empty( $_POST[ 'acs_highlight_style' ] ) ) ? stripslashes( wp_kses_post( $_POST[ 'acs_highlight_style' ] ) ) : '';
-    $settings->acs_highlight_class = ( !empty( $_POST[ 'acs_highlight_class' ] ) ) ? stripslashes( wp_kses_post( $_POST[ 'acs_highlight_class' ] ) ) : '';
-    $settings->acs_suggest_active =  ( !empty( $_POST[ 'acs_suggest_active' ] ) ) ? 1 : 0;
-	$settings->acs_suggest_only_title =  ( !empty( $_POST[ 'acs_suggest_only_title' ] ) ) ? 1 : 0;
-    $settings->acs_suggest_selector = ( !empty( $_POST[ 'acs_suggest_selector' ] ) ) ? stripslashes( wp_kses_post( $_POST[ 'acs_suggest_selector' ] ) ) : ACS::SUGGEST_DEFAULT_SELECTOR;
-    $settings->acs_suggest_trigger = ( !empty( $_POST[ 'acs_suggest_trigger' ] ) ) ? intval( wp_kses_post( $_POST[ 'acs_suggest_trigger' ] ) ) : ACS::SUGGEST_DEFAULT_TRIGGER;
-    $settings->acs_suggest_results = ( !empty( $_POST[ 'acs_suggest_results' ] ) ) ? intval( wp_kses_post( $_POST[ 'acs_suggest_results' ] ) ) : ACS::SUGGEST_DEFAULT_RESULTS;
-    $settings->acs_suggest_order = ( !empty( $_POST[ 'acs_suggest_order' ] ) ) ? wp_kses_post( $_POST[ 'acs_suggest_order' ] ) : ACS::SUGGEST_ORDER_TYPE_1;
-    $settings->acs_suggest_click = ( !empty( $_POST[ 'acs_suggest_click' ] ) ) ? wp_kses_post( $_POST[ 'acs_suggest_click' ] ) : ACS::SUGGEST_CLICK_TYPE_1;
-    $settings->acs_suggest_all_font_size = ( !empty( $_POST[ 'acs_suggest_all_font_size' ] ) ) ? wp_kses_post( $_POST[ 'acs_suggest_all_font_size' ] ) : ACS::SUGGEST_DEFAULT_ALL_FONT_SIZE;
-    $settings->acs_suggest_all_color = ( !empty( $_POST[ 'acs_suggest_all_color' ] ) ) ? wp_kses_post( $_POST[ 'acs_suggest_all_color' ] ) : ACS::SUGGEST_DEFAULT_ALL_COLOR;
-    $settings->acs_suggest_all_background = ( !empty( $_POST[ 'acs_suggest_all_background' ] ) ) ? wp_kses_post( $_POST[ 'acs_suggest_all_background' ] ) : ACS::SUGGEST_DEFAULT_ALL_BACKGROUND;
-    $settings->acs_suggest_focused_font_size = ( !empty( $_POST[ 'acs_suggest_focused_font_size' ] ) ) ? wp_kses_post( $_POST[ 'acs_suggest_focused_font_size' ] ) : ACS::SUGGEST_DEFAULT_FOCUSED_FONT_SIZE;
-    $settings->acs_suggest_focused_color = ( !empty( $_POST[ 'acs_suggest_focused_color' ] ) ) ? wp_kses_post( $_POST[ 'acs_suggest_focused_color' ] ) : ACS::SUGGEST_DEFAULT_FOCUSED_COLOR;
-    $settings->acs_suggest_focused_background = ( !empty( $_POST[ 'acs_suggest_focused_background' ] ) ) ? wp_kses_post( $_POST[ 'acs_suggest_focused_background' ] ) : ACS::SUGGEST_DEFAULT_FOCUSED_BACKGROUND;
-	$settings->acs_hide_section_help =  ( !empty( $_POST[ 'acs_hide_section_help' ] ) ) ? 1 : 0;
-	$settings->acs_hide_section_docs =  ( !empty( $_POST[ 'acs_hide_section_docs' ] ) ) ? 1 : 0;
+	$settings->acs_aws_access_key_id = ( !empty( $newsettings[ 'acs_aws_access_key_id' ] ) ) ? wp_kses_post( $newsettings[ 'acs_aws_access_key_id' ] ) : '';
+	$settings->acs_aws_secret_access_key = ( !empty( $newsettings[ 'acs_aws_secret_access_key' ] ) ) ? wp_kses_post( $newsettings[ 'acs_aws_secret_access_key' ] ) : '';
+	$settings->acs_aws_region = ( !empty( $newsettings[ 'acs_aws_region' ] ) ) ? wp_kses_post( $newsettings[ 'acs_aws_region' ] ) : '';
+	$settings->acs_search_endpoint = ( !empty( $newsettings[ 'acs_search_endpoint' ] ) ) ? wp_kses_post( $newsettings[ 'acs_search_endpoint' ] ) : '';
+	$settings->acs_search_domain_name = ( !empty( $newsettings[ 'acs_search_domain_name' ] ) ) ? wp_kses_post( $newsettings[ 'acs_search_domain_name' ] ) : '';
+	$settings->acs_frontpage_content_box_type = ( !empty( $newsettings[ 'acs_frontpage_content_box_type' ] ) ) ? wp_kses_post( $newsettings[ 'acs_frontpage_content_box_type' ] ) : 'default';
+	$settings->acs_frontpage_content_box_value = ( !empty( $newsettings[ 'acs_frontpage_content_box_value' ] ) ) ? wp_kses_post( $newsettings[ 'acs_frontpage_content_box_value' ] ) : '';
+	$settings->acs_frontpage_use_plugin_search_page = ( !empty( $newsettings[ 'acs_frontpage_use_plugin_search_page' ] ) ) ? 1 : 0;
+	$settings->acs_frontpage_use_jquery = ( !empty( $newsettings[ 'acs_frontpage_use_jquery' ] ) ) ? 1 : 0;
+	$settings->acs_frontpage_show_filters = ( !empty( $newsettings[ 'acs_frontpage_show_filters' ] ) ) ? 1 : 0;
+	$settings->acs_frontpage_custom_css = ( !empty( $newsettings[ 'acs_frontpage_custom_css' ] ) ) ? wp_kses_post( $newsettings[ 'acs_frontpage_custom_css' ] ) : '';
+	$settings->acs_results_show_fields_sticky = ( !empty( $newsettings[ 'acs_results_show_fields_sticky' ] ) ) ? 1 : 0;
+	$settings->acs_results_show_fields_formats = ( !empty( $newsettings[ 'acs_results_show_fields_formats' ] ) ) ? 1 : 0;
+	$settings->acs_results_show_fields_categories = ( !empty( $newsettings[ 'acs_results_show_fields_categories' ] ) ) ? 1 : 0;
+	$settings->acs_results_show_fields_tags = ( !empty( $newsettings[ 'acs_results_show_fields_tags' ] ) ) ? 1 : 0;
+	$settings->acs_results_show_fields_comments = ( !empty( $newsettings[ 'acs_results_show_fields_comments' ] ) ) ? 1 : 0;
+	$settings->acs_results_show_fields_content = ( !empty( $newsettings[ 'acs_results_show_fields_content' ] ) ) ? 1 : 0;
+    $settings->acs_results_show_fields_excerpt = ( !empty( $newsettings[ 'acs_results_show_fields_excerpt' ] ) ) ? 1 : 0;
+	$settings->acs_results_show_fields_custom = ( !empty( $newsettings[ 'acs_results_show_fields_custom' ] ) ) ? 1 : 0;
+	$settings->acs_results_custom_field = ( !empty( $newsettings[ 'acs_results_custom_field' ] ) ) ? wp_kses_post( $newsettings[ 'acs_results_custom_field' ] ) : '';
+	$settings->acs_results_show_fields_image = ( !empty( $newsettings[ 'acs_results_show_fields_image' ] ) ) ? 1 : 0;
+	$settings->acs_results_format_image = ( !empty( $newsettings[ 'acs_results_format_image' ] ) ) ? wp_kses_post( $newsettings[ 'acs_results_format_image' ] ) : '';
+	$settings->acs_results_show_fields_date = ( !empty( $newsettings[ 'acs_results_show_fields_date' ] ) ) ? 1 : 0;
+	$settings->acs_results_format_date = ( !empty( $newsettings[ 'acs_results_format_date' ] ) ) ? wp_kses_post( $newsettings[ 'acs_results_format_date' ] ) : '';
+	$settings->acs_results_show_fields_author = ( !empty( $newsettings[ 'acs_results_show_fields_author' ] ) ) ? 1 : 0;
+	$settings->acs_results_format_author = ( !empty( $newsettings[ 'acs_results_format_author' ] ) ) ? wp_kses_post( $newsettings[ 'acs_results_format_author' ] ) : '';
+	$settings->acs_results_no_results_msg = ( !empty( $newsettings[ 'acs_results_no_results_msg' ] ) ) ? stripslashes( wp_kses_post( $newsettings[ 'acs_results_no_results_msg' ] ) ) : __( 'No results', ACS::PREFIX );
+	$settings->acs_results_no_results_box_value = ( !empty( $newsettings[ 'acs_results_no_results_box_value' ] ) ) ? wp_kses_post( $newsettings[ 'acs_results_no_results_box_value' ] ) : '';
+	$settings->acs_results_load_more_msg = ( !empty( $newsettings[ 'acs_results_load_more_msg' ] ) ) ? stripslashes( wp_kses_post( $newsettings[ 'acs_results_load_more_msg' ] ) ) : __( 'Load more', ACS::PREFIX );
+	$settings->acs_filter_sort_field = ( !empty( $newsettings[ 'acs_filter_sort_field' ] ) ) ? wp_kses_post( $newsettings[ 'acs_filter_sort_field' ] ) : ACS::SORT_FIELD_DEFAULT;
+	$settings->acs_filter_sort_order = ( !empty( $newsettings[ 'acs_filter_sort_order' ] ) ) ? wp_kses_post( $newsettings[ 'acs_filter_sort_order' ] ) : ACS::SORT_ORDER_DEFAULT;
+	$settings->acs_results_max_items = ( !empty( $newsettings[ 'acs_results_max_items' ] ) ) ? intval( wp_kses_post( $newsettings[ 'acs_results_max_items' ] ) ) : ACS::SEARCH_RETURN_FULL_ITEMS;
+	$settings->acs_results_field_weights = ( !empty( $newsettings[ 'acs_results_field_weights' ] ) ) ? stripslashes( wp_kses_post( $newsettings[ 'acs_results_field_weights' ] ) ) : '';
+    $settings->acs_filter_text_length = ( !empty( $newsettings[ 'acs_filter_text_length' ] ) ) ? intval( wp_kses_post( $newsettings[ 'acs_filter_text_length' ] ) ) : ACS::SEARCH_TEXT_LENGTH;
+    $settings->acs_filter_text_length_type = ( !empty( $newsettings[ 'acs_filter_text_length_type' ] ) ) ? wp_kses_post( $newsettings[ 'acs_filter_text_length_type' ] ) : ACS::SEARCH_TEXT_LENGTH_TYPE;
+    $settings->acs_schema_fields_prefix = ( !empty( $newsettings[ 'acs_schema_fields_prefix' ] ) ) ? wp_kses_post( $newsettings[ 'acs_schema_fields_prefix' ] ) : '';
+	$settings->acs_schema_fields_separator = ( !empty( $newsettings[ 'acs_schema_fields_separator' ] ) ) ? wp_kses_post( $newsettings[ 'acs_schema_fields_separator' ] ) : ACS::FIELD_SEPARATOR_DEFAULT;
+	$settings->acs_schema_fields_image_size = ( !empty( $newsettings[ 'acs_schema_fields_image_size' ] ) ) ? wp_kses_post( $newsettings[ 'acs_schema_fields_image_size' ] ) : '';
+	$settings->acs_schema_fields_custom_image_id = ( !empty( $newsettings[ 'acs_schema_fields_custom_image_id' ] ) ) ? wp_kses_post( $newsettings[ 'acs_schema_fields_custom_image_id' ] ) : '';
+    $settings->acs_schema_prevent_deletion =  ( !empty( $newsettings[ 'acs_schema_prevent_deletion' ] ) ) ? 1 : 0;
+	$settings->acs_network_site_id = ( !empty( $newsettings[ 'acs_network_site_id' ] ) ) ? wp_kses_post( $newsettings[ 'acs_network_site_id' ] ) : '';
+	$settings->acs_network_blog_id = ( !empty( $newsettings[ 'acs_network_blog_id' ] ) ) ? wp_kses_post( $newsettings[ 'acs_network_blog_id' ] ) : '';
+	$settings->acs_highlight_type = ( !empty( $newsettings[ 'acs_highlight_type' ] ) ) ? wp_kses_post( $newsettings[ 'acs_highlight_type' ] ) : ACS::HIGHLIGHT_TYPE_DEFAULT;
+    $settings->acs_highlight_titles = ( !empty( $newsettings[ 'acs_highlight_titles' ] ) ) ? 1 : 0;
+    $settings->acs_highlight_color_text = ( !empty( $newsettings[ 'acs_highlight_color_text' ] ) ) ? wp_kses_post( $newsettings[ 'acs_highlight_color_text' ] ) : '';
+    $settings->acs_highlight_color_background = ( !empty( $newsettings[ 'acs_highlight_color_background' ] ) ) ? wp_kses_post( $newsettings[ 'acs_highlight_color_background' ] ) : '';
+    $settings->acs_highlight_style = ( !empty( $newsettings[ 'acs_highlight_style' ] ) ) ? stripslashes( wp_kses_post( $newsettings[ 'acs_highlight_style' ] ) ) : '';
+    $settings->acs_highlight_class = ( !empty( $newsettings[ 'acs_highlight_class' ] ) ) ? stripslashes( wp_kses_post( $newsettings[ 'acs_highlight_class' ] ) ) : '';
+    $settings->acs_suggest_active =  ( !empty( $newsettings[ 'acs_suggest_active' ] ) ) ? 1 : 0;
+	$settings->acs_suggest_only_title =  ( !empty( $newsettings[ 'acs_suggest_only_title' ] ) ) ? 1 : 0;
+    $settings->acs_suggest_selector = ( !empty( $newsettings[ 'acs_suggest_selector' ] ) ) ? stripslashes( wp_kses_post( $newsettings[ 'acs_suggest_selector' ] ) ) : ACS::SUGGEST_DEFAULT_SELECTOR;
+    $settings->acs_suggest_trigger = ( !empty( $newsettings[ 'acs_suggest_trigger' ] ) ) ? intval( wp_kses_post( $newsettings[ 'acs_suggest_trigger' ] ) ) : ACS::SUGGEST_DEFAULT_TRIGGER;
+    $settings->acs_suggest_results = ( !empty( $newsettings[ 'acs_suggest_results' ] ) ) ? intval( wp_kses_post( $newsettings[ 'acs_suggest_results' ] ) ) : ACS::SUGGEST_DEFAULT_RESULTS;
+    $settings->acs_suggest_order = ( !empty( $newsettings[ 'acs_suggest_order' ] ) ) ? wp_kses_post( $newsettings[ 'acs_suggest_order' ] ) : ACS::SUGGEST_ORDER_TYPE_1;
+    $settings->acs_suggest_click = ( !empty( $newsettings[ 'acs_suggest_click' ] ) ) ? wp_kses_post( $newsettings[ 'acs_suggest_click' ] ) : ACS::SUGGEST_CLICK_TYPE_1;
+    $settings->acs_suggest_all_font_size = ( !empty( $newsettings[ 'acs_suggest_all_font_size' ] ) ) ? wp_kses_post( $newsettings[ 'acs_suggest_all_font_size' ] ) : ACS::SUGGEST_DEFAULT_ALL_FONT_SIZE;
+    $settings->acs_suggest_all_color = ( !empty( $newsettings[ 'acs_suggest_all_color' ] ) ) ? wp_kses_post( $newsettings[ 'acs_suggest_all_color' ] ) : ACS::SUGGEST_DEFAULT_ALL_COLOR;
+    $settings->acs_suggest_all_background = ( !empty( $newsettings[ 'acs_suggest_all_background' ] ) ) ? wp_kses_post( $newsettings[ 'acs_suggest_all_background' ] ) : ACS::SUGGEST_DEFAULT_ALL_BACKGROUND;
+    $settings->acs_suggest_focused_font_size = ( !empty( $newsettings[ 'acs_suggest_focused_font_size' ] ) ) ? wp_kses_post( $newsettings[ 'acs_suggest_focused_font_size' ] ) : ACS::SUGGEST_DEFAULT_FOCUSED_FONT_SIZE;
+    $settings->acs_suggest_focused_color = ( !empty( $newsettings[ 'acs_suggest_focused_color' ] ) ) ? wp_kses_post( $newsettings[ 'acs_suggest_focused_color' ] ) : ACS::SUGGEST_DEFAULT_FOCUSED_COLOR;
+    $settings->acs_suggest_focused_background = ( !empty( $newsettings[ 'acs_suggest_focused_background' ] ) ) ? wp_kses_post( $newsettings[ 'acs_suggest_focused_background' ] ) : ACS::SUGGEST_DEFAULT_FOCUSED_BACKGROUND;
+	$settings->acs_hide_section_help =  ( !empty( $newsettings[ 'acs_hide_section_help' ] ) ) ? 1 : 0;
+	$settings->acs_hide_section_docs =  ( !empty( $newsettings[ 'acs_hide_section_docs' ] ) ) ? 1 : 0;
 
 	// Remove '.php' occurrences from boxes value
 	$settings->acs_frontpage_content_box_value = str_replace( '.php', '', $settings->acs_frontpage_content_box_value );
@@ -239,23 +241,9 @@ function cldchimp_process_settings_import() {
 	$settings->acs_frontpage_content_box_value = str_replace( '.PHP', '', $settings->acs_frontpage_content_box_value );
 	$settings->acs_results_no_results_box_value = str_replace( '.PHP', '', $settings->acs_results_no_results_box_value );
 
-	$acs_schema_types = wp_kses_post( $_POST['acs_schema_types'] );
-	if ( $acs_schema_types == null ) {
-		$acs_schema_types = array();
-	}
-	$settings->acs_schema_types = implode( ACS::SEPARATOR, $acs_schema_types );
-
-	$acs_schema_fields = ( ! empty( $_POST['acs_schema_fields'] ) ) ? wp_kses_post( $_POST['acs_schema_fields'] ) : null;
-	if ( $acs_schema_fields == null ) {
-		$acs_schema_fields = array();
-	}
-	$settings->acs_schema_fields = implode( ACS::SEPARATOR, $acs_schema_fields );
-
-	$acs_schema_taxonomies = ( ! empty( $_POST['acs_schema_taxonomies'] ) ) ? wp_kses_post( $_POST['acs_schema_taxonomies'] ) : null;
-	if ( $acs_schema_taxonomies == null ) {
-		$acs_schema_taxonomies = array();
-	}
-	$settings->acs_schema_taxonomies = implode( ACS::SEPARATOR, $acs_schema_taxonomies );
+	$settings->acs_schema_types =  ( !empty( $newsettings[ 'acs_schema_types' ] ) ) ? $newsettings[ 'acs_schema_types' ] : array();
+	$settings->acs_schema_fields =  ( !empty( $newsettings[ 'acs_schema_fields' ] ) ) ? $newsettings[ 'acs_schema_fields' ] : array();
+	$settings->acs_schema_taxonomies =  ( !empty( $newsettings[ 'acs_schema_taxonomies' ] ) ) ? $newsettings[ 'acs_schema_taxonomies' ] : array();
 
 	// Save option on database
 	update_option( ACS::OPTION_SETTINGS, $settings );
